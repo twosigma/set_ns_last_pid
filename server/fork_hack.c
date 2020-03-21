@@ -46,8 +46,8 @@ pid_t max_pid;
 int num_cpus;
 int num_threads;
 
-int num_pids_to_cycle;
-int num_pids_to_cycle_done;
+uint64_t num_pids_to_cycle;
+uint64_t num_pids_to_cycle_done;
 
 pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -120,8 +120,8 @@ static int get_system_pids(struct pid_array *pids)
 
 		int task_fd = openat(proc_fd, name_buf, O_RDONLY | O_DIRECTORY | O_CLOEXEC);
 		if (task_fd == -1) {
-			warn("Can't open proc task");
-			goto err_freearray;
+			/* Task is most likely dead */
+			continue;
 		}
 
 		task_dir = fdopendir(task_fd);
@@ -219,26 +219,6 @@ static int spawn_child(void)
 	return 0;
 }
 
-static bool throttle_warn(int timeout_ms)
-{
-	static pthread_mutex_t _mutex = PTHREAD_MUTEX_INITIALIZER;
-	static struct timespec last_time_warned;
-
-	struct timespec tv;
-	if (clock_gettime(CLOCK_MONOTONIC, &tv) < 0)
-		return true;
-
-	bool ret = false;
-	pthread_mutex_lock(&_mutex);
-	if (timespec_sub_to_msec(&tv, &last_time_warned) > timeout_ms) {
-		ret = true;
-		last_time_warned = tv;
-	}
-	pthread_mutex_unlock(&_mutex);
-
-	return ret;
-}
-
 static void *thread_main(void *arg)
 {
 	(void)arg;
@@ -251,12 +231,15 @@ static void *thread_main(void *arg)
 		pthread_mutex_unlock(&mutex);
 
 		if (spawn_child() < 0) {
-			if (throttle_warn(3000))
-				warn("Can't create thread, will retry");
-			usleep(100*1000); // 0.1s backoff
-			pthread_mutex_lock(&mutex);
-			num_pids_to_cycle++;
-			continue;
+			if (errno == EAGAIN) {
+				/*
+				 * We might be failing to fork due to too many
+				 * processes, but the PIDs can still get
+				 * allocated, so we'll keep counting our
+				 * potential success.
+				 */
+			} else
+				err(1, "Can't fork()");
 		}
 
 		pthread_mutex_lock(&mutex);
@@ -291,13 +274,21 @@ int set_ns_last_pid_fork_hack(pid_t pid)
 		return -1;
 	}
 
-	for (int pass = 1; pass <= 10; pass++) {
+	int64_t max_total_pids_to_cycle = max_pid * 10;
+	int64_t total_cycled_pids = 0;
+
+	for (int pass = 1;; pass++) {
 		current_pid = get_ns_last_pid();
 		if (current_pid == -1)
 			return -1;
 
 		if (current_pid == pid)
 			break;
+
+		if (total_cycled_pids > max_total_pids_to_cycle) {
+			warnx("Cycled through too many pids, giving up");
+			return -1;
+		}
 
 		if (get_system_pids(&pids) == -1)
 			return -1;
@@ -311,7 +302,7 @@ int set_ns_last_pid_fork_hack(pid_t pid)
 		if (count_pids_in_range(&pids, desired_next_pid, desired_next_pid))
 			warnx("Warning: Desired next pid %d is already taken", desired_next_pid);
 
-		int _num_pids_to_cycle = pid - current_pid;
+		int64_t _num_pids_to_cycle = pid - current_pid;
 		if (_num_pids_to_cycle > 0) {
 			_num_pids_to_cycle -= count_pids_in_range(&pids, current_pid+1, pid);
 		} else {
@@ -327,25 +318,27 @@ int set_ns_last_pid_fork_hack(pid_t pid)
 		if (_num_pids_to_cycle == 0)
 			break;
 
-		if (pass >= 2 &&_num_pids_to_cycle >= 20) {
+		if (_num_pids_to_cycle >= 100) {
 			/*
-			 * If the first pass didn't work, we'll do multiple
-			 * passes to take in account processes that are
-			 * created while we are doing the work.
+			 * When we have many pids to cycle through, we do
+			 * multiple passes, as new processes that we don't
+			 * control may be created while we are doing work.
 			 */
-			_num_pids_to_cycle -= 10;
+			_num_pids_to_cycle = _num_pids_to_cycle * 9 / 10;
 		}
 
-		debugx("Cycling through %d pids, pass %d", _num_pids_to_cycle, pass);
+		debugx("Cycling through %ld pids, pass %d", _num_pids_to_cycle, pass);
 
 		pthread_mutex_lock(&mutex);
 		num_pids_to_cycle = _num_pids_to_cycle;
 		num_pids_to_cycle_done = _num_pids_to_cycle;
 		pthread_cond_broadcast(&cond);
 
-		if (num_pids_to_cycle_done)
+		while (num_pids_to_cycle_done)
 			pthread_cond_wait(&cond, &mutex);
 		pthread_mutex_unlock(&mutex);
+
+		total_cycled_pids += _num_pids_to_cycle;
 	}
 
 	debugx("ns_last_pid is now %d", get_ns_last_pid());
