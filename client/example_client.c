@@ -25,6 +25,7 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <err.h>
+#include <string.h>
 
 struct ns_last_pid_context {
 	int client_fd;

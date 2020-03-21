@@ -36,6 +36,7 @@
 #include <stdbool.h>
 #include "set_ns_last_pid.h"
 #include "timespec-util.h"
+#include "fork_hack.h"
 
 #define MAX_PID_PATH "/proc/sys/kernel/pid_max"
 
@@ -364,7 +365,7 @@ static pid_t get_max_pid(void)
 	return atoi(buf);
 }
 
-static int init_threads(int num_threads)
+static int init_threads(void)
 {
 	for (int i = 0; i < num_threads; i++) {
 		pthread_t thread;
@@ -395,7 +396,7 @@ int fork_hack_init(void)
 	debugx("num CPUs: %d, num threads: %d, max PID: %d",
 	       num_cpus, num_threads, max_pid);
 
-	if (init_threads(num_threads) == -1)
+	if (init_threads() == -1)
 		return -1;
 
 	return 0;
