@@ -43,14 +43,14 @@
  */
 static inline void
 timespec_sub(struct timespec *r,
-	     const struct timespec *a, const struct timespec *b)
+             const struct timespec *a, const struct timespec *b)
 {
-	r->tv_sec = a->tv_sec - b->tv_sec;
-	r->tv_nsec = a->tv_nsec - b->tv_nsec;
-	if (r->tv_nsec < 0) {
-		r->tv_sec--;
-		r->tv_nsec += NSEC_PER_SEC;
-	}
+    r->tv_sec = a->tv_sec - b->tv_sec;
+    r->tv_nsec = a->tv_nsec - b->tv_nsec;
+    if (r->tv_nsec < 0) {
+        r->tv_sec--;
+        r->tv_nsec += NSEC_PER_SEC;
+    }
 }
 
 /* Add a nanosecond value to a timespec
@@ -62,16 +62,16 @@ timespec_sub(struct timespec *r,
 static inline void
 timespec_add_nsec(struct timespec *r, const struct timespec *a, int64_t b)
 {
-	r->tv_sec = a->tv_sec + (b / NSEC_PER_SEC);
-	r->tv_nsec = a->tv_nsec + (b % NSEC_PER_SEC);
+    r->tv_sec = a->tv_sec + (b / NSEC_PER_SEC);
+    r->tv_nsec = a->tv_nsec + (b % NSEC_PER_SEC);
 
-	if (r->tv_nsec >= NSEC_PER_SEC) {
-		r->tv_sec++;
-		r->tv_nsec -= NSEC_PER_SEC;
-	} else if (r->tv_nsec < 0) {
-		r->tv_sec--;
-		r->tv_nsec += NSEC_PER_SEC;
-	}
+    if (r->tv_nsec >= NSEC_PER_SEC) {
+        r->tv_sec++;
+        r->tv_nsec -= NSEC_PER_SEC;
+    } else if (r->tv_nsec < 0) {
+        r->tv_sec--;
+        r->tv_nsec += NSEC_PER_SEC;
+    }
 }
 
 /* Add a millisecond value to a timespec
@@ -83,7 +83,7 @@ timespec_add_nsec(struct timespec *r, const struct timespec *a, int64_t b)
 static inline void
 timespec_add_msec(struct timespec *r, const struct timespec *a, int64_t b)
 {
-	timespec_add_nsec(r, a, b * 1000000);
+    timespec_add_nsec(r, a, b * 1000000);
 }
 
 /* Convert timespec to nanoseconds
@@ -94,7 +94,7 @@ timespec_add_msec(struct timespec *r, const struct timespec *a, int64_t b)
 static inline int64_t
 timespec_to_nsec(const struct timespec *a)
 {
-	return (int64_t)a->tv_sec * NSEC_PER_SEC + a->tv_nsec;
+    return (int64_t)a->tv_sec * NSEC_PER_SEC + a->tv_nsec;
 }
 
 /* Subtract timespecs and return result in nanoseconds
@@ -106,9 +106,9 @@ timespec_to_nsec(const struct timespec *a)
 static inline int64_t
 timespec_sub_to_nsec(const struct timespec *a, const struct timespec *b)
 {
-	struct timespec r;
-	timespec_sub(&r, a, b);
-	return timespec_to_nsec(&r);
+    struct timespec r;
+    timespec_sub(&r, a, b);
+    return timespec_to_nsec(&r);
 }
 
 /* Convert timespec to milliseconds
@@ -121,7 +121,7 @@ timespec_sub_to_nsec(const struct timespec *a, const struct timespec *b)
 static inline int64_t
 timespec_to_msec(const struct timespec *a)
 {
-	return (int64_t)a->tv_sec * 1000 + a->tv_nsec / 1000000;
+    return (int64_t)a->tv_sec * 1000 + a->tv_nsec / 1000000;
 }
 
 /* Subtract timespecs and return result in milliseconds
@@ -133,7 +133,7 @@ timespec_to_msec(const struct timespec *a)
 static inline int64_t
 timespec_sub_to_msec(const struct timespec *a, const struct timespec *b)
 {
-	return timespec_sub_to_nsec(a, b) / 1000000;
+    return timespec_sub_to_nsec(a, b) / 1000000;
 }
 
 /* Convert timespec to microseconds
@@ -146,7 +146,7 @@ timespec_sub_to_msec(const struct timespec *a, const struct timespec *b)
 static inline int64_t
 timespec_to_usec(const struct timespec *a)
 {
-	return (int64_t)a->tv_sec * 1000000 + a->tv_nsec / 1000;
+    return (int64_t)a->tv_sec * 1000000 + a->tv_nsec / 1000;
 }
 
 /* Convert timespec to protocol data
@@ -163,14 +163,14 @@ static inline void
 timespec_to_proto(const struct timespec *a, uint32_t *tv_sec_hi,
                   uint32_t *tv_sec_lo, uint32_t *tv_nsec)
 {
-	assert(a->tv_sec >= 0);
-	assert(a->tv_nsec >= 0 && a->tv_nsec < NSEC_PER_SEC);
+    assert(a->tv_sec >= 0);
+    assert(a->tv_nsec >= 0 && a->tv_nsec < NSEC_PER_SEC);
 
-	uint64_t sec64 = a->tv_sec;
+    uint64_t sec64 = a->tv_sec;
 
-	*tv_sec_hi = sec64 >> 32;
-	*tv_sec_lo = sec64 & 0xffffffff;
-	*tv_nsec = a->tv_nsec;
+    *tv_sec_hi = sec64 >> 32;
+    *tv_sec_lo = sec64 & 0xffffffff;
+    *tv_nsec = a->tv_nsec;
 }
 
 /* Convert nanoseconds to timespec
@@ -181,8 +181,8 @@ timespec_to_proto(const struct timespec *a, uint32_t *tv_sec_hi,
 static inline void
 timespec_from_nsec(struct timespec *a, int64_t b)
 {
-	a->tv_sec = b / NSEC_PER_SEC;
-	a->tv_nsec = b % NSEC_PER_SEC;
+    a->tv_sec = b / NSEC_PER_SEC;
+    a->tv_nsec = b % NSEC_PER_SEC;
 }
 
 /* Convert microseconds to timespec
@@ -193,7 +193,7 @@ timespec_from_nsec(struct timespec *a, int64_t b)
 static inline void
 timespec_from_usec(struct timespec *a, int64_t b)
 {
-	timespec_from_nsec(a, b * 1000);
+    timespec_from_nsec(a, b * 1000);
 }
 
 /* Convert milliseconds to timespec
@@ -204,7 +204,7 @@ timespec_from_usec(struct timespec *a, int64_t b)
 static inline void
 timespec_from_msec(struct timespec *a, int64_t b)
 {
-	timespec_from_nsec(a, b * 1000000);
+    timespec_from_nsec(a, b * 1000000);
 }
 
 /* Convert protocol data to timespec
@@ -218,8 +218,8 @@ static inline void
 timespec_from_proto(struct timespec *a, uint32_t tv_sec_hi,
                     uint32_t tv_sec_lo, uint32_t tv_nsec)
 {
-	a->tv_sec = ((uint64_t)tv_sec_hi << 32) + tv_sec_lo;
-	a->tv_nsec = tv_nsec;
+    a->tv_sec = ((uint64_t)tv_sec_hi << 32) + tv_sec_lo;
+    a->tv_nsec = tv_nsec;
 }
 
 /* Check if a timespec is zero
@@ -230,7 +230,7 @@ timespec_from_proto(struct timespec *a, uint32_t tv_sec_hi,
 static inline bool
 timespec_is_zero(const struct timespec *a)
 {
-	return a->tv_sec == 0 && a->tv_nsec == 0;
+    return a->tv_sec == 0 && a->tv_nsec == 0;
 }
 
 /* Check if two timespecs are equal
@@ -242,8 +242,8 @@ timespec_is_zero(const struct timespec *a)
 static inline bool
 timespec_eq(const struct timespec *a, const struct timespec *b)
 {
-	return a->tv_sec == b->tv_sec &&
-	       a->tv_nsec == b->tv_nsec;
+    return a->tv_sec == b->tv_sec &&
+        a->tv_nsec == b->tv_nsec;
 }
 
 /* Convert milli-Hertz to nanoseconds
@@ -254,8 +254,8 @@ timespec_eq(const struct timespec *a, const struct timespec *b)
 static inline int64_t
 millihz_to_nsec(uint32_t mhz)
 {
-	assert(mhz > 0);
-	return 1000000000000LL / mhz;
+    assert(mhz > 0);
+    return 1000000000000LL / mhz;
 }
 
 #endif /* TIMESPEC_UTIL_H */
