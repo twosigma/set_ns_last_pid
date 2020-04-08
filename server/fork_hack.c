@@ -293,7 +293,7 @@ int set_ns_last_pid_fork_hack(pid_t pid)
          */
         pid_t desired_next_pid = increment_pid(pid, 1);
         if (count_pids_in_range(&pids, desired_next_pid, desired_next_pid))
-            warnx("Warning: Desired next pid %d is already taken", desired_next_pid);
+            warnx("WARN: Desired next pid %d is already taken", desired_next_pid);
 
         int64_t _num_pids_to_cycle = pid - current_pid;
         if (_num_pids_to_cycle > 0) {
@@ -375,6 +375,9 @@ int fork_hack_init(void)
     max_pid = get_max_pid();
     if (max_pid == -1)
         return -1;
+
+    if (max_pid > 130000)
+        warnx("WARN: /proc/sys/kernel/pid_max is high. This might take a while");
 
     num_cpus = sysconf(_SC_NPROCESSORS_ONLN);
 
