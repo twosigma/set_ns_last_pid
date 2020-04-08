@@ -35,7 +35,6 @@
 #include <time.h>
 #include <stdbool.h>
 #include "set_ns_last_pid.h"
-#include "timespec-util.h"
 #include "fork_hack.h"
 
 #define MAX_PID_PATH "/proc/sys/kernel/pid_max"
@@ -78,13 +77,7 @@ static int get_system_pids(struct pid_array *pids)
     DIR *proc_dir = NULL, *task_dir = NULL;
     struct dirent *proc_dirent = NULL, *task_dirent = NULL;
 
-    int proc_fd = open("/proc", O_RDONLY | O_DIRECTORY | O_CLOEXEC);
-    if (proc_fd == -1) {
-        warn("Can't open /proc");
-        return -1;
-    }
-
-    proc_dir = fdopendir(proc_fd);
+    proc_dir = opendir("/proc");
     if (!proc_dir) {
         warn("Can't opendir /proc");
         return -1;
@@ -119,7 +112,7 @@ static int get_system_pids(struct pid_array *pids)
         char name_buf[300];
         snprintf(name_buf, sizeof(name_buf), "%s/task", proc_dirent->d_name);
 
-        int task_fd = openat(proc_fd, name_buf, O_RDONLY | O_DIRECTORY | O_CLOEXEC);
+        int task_fd = openat(dirfd(proc_dir), name_buf, O_RDONLY | O_DIRECTORY | O_CLOEXEC);
         if (task_fd == -1) {
             /* Task is most likely dead */
             continue;
