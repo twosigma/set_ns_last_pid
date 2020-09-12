@@ -252,6 +252,31 @@ static pid_t increment_pid(pid_t pid, int increment)
     return pid;
 }
 
+static void warn_desired_pid_taken(pid_t pid)
+{
+    char buf[1024];
+    ssize_t len;
+    int fd;
+
+    sprintf(buf, "/proc/%d/cmdline", pid);
+    fd = open(buf, O_RDONLY);
+    if (fd < 0) {
+        /* The pid is actually not taken, moving on */
+        return;
+    }
+
+    len = read(fd, buf, sizeof(buf)-1);
+    close(fd);
+
+    if (len < 0) {
+        warnx("WARN: Desired next pid %d is already taken", pid);
+        return;
+    }
+
+    buf[len] = 0; /* Zero-terminate the string */
+    warnx("WARN: Desired next pid %d is already taken by %s", pid, buf);
+}
+
 int set_ns_last_pid_fork_hack(pid_t pid)
 {
     struct pid_array pids;
@@ -293,7 +318,7 @@ int set_ns_last_pid_fork_hack(pid_t pid)
          */
         pid_t desired_next_pid = increment_pid(pid, 1);
         if (count_pids_in_range(&pids, desired_next_pid, desired_next_pid))
-            warnx("WARN: Desired next pid %d is already taken", desired_next_pid);
+            warn_desired_pid_taken(desired_next_pid);
 
         int64_t _num_pids_to_cycle = pid - current_pid;
         if (_num_pids_to_cycle > 0) {
